@@ -5,10 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".ProfileActivity">
 
     <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/display_image_main"
+        android:id="@+id/display_image_profile"
         android:layout_width="170dp"
         android:layout_height="170dp"
         android:layout_gravity="center_horizontal"
@@ -16,7 +16,7 @@
         android:src="@drawable/icon_profile" />
 
     <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/text_input_layout_display_name_main"
+        android:id="@+id/text_input_layout_display_name_profile"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
