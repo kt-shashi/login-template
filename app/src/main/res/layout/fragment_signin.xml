@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:hint="@string/email"
             android:inputType="textEmailAddress"
-            android:maxLength="20" />
+            android:maxLength="30" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -40,7 +40,7 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <Button
-        android:id="@+id/button_signup_fragment"
+        android:id="@+id/button_signin_fragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/signin"

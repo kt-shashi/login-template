@@ -1,14 +1,17 @@
 package com.shashi.logintemplate
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
+import com.google.firebase.auth.FirebaseAuth
 import com.shashi.logintemplate.databinding.ActivityLoginBinding
 import com.shashi.logintemplate.login.SigninFragment
 import com.shashi.logintemplate.login.SignupFragment
+
 
 class LoginActivity : AppCompatActivity() {
 
@@ -26,6 +29,14 @@ class LoginActivity : AppCompatActivity() {
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val firebaseAuth = FirebaseAuth.getInstance()
+        val firebaseUser = firebaseAuth.currentUser
+
+        if (firebaseUser != null) {
+            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+            finish()
+        }
 
         val toolBar: Toolbar = binding.toolbarLogin
         setSupportActionBar(toolBar)
