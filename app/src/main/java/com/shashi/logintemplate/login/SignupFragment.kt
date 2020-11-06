@@ -8,14 +8,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import com.shashi.logintemplate.MainActivity
+import com.shashi.logintemplate.ProfileActivity
 import com.shashi.logintemplate.R
-
 
 class SignupFragment : Fragment() {
 
@@ -71,7 +69,7 @@ class SignupFragment : Fragment() {
             ) { task ->
                 if (task.isSuccessful) {
 
-                    startActivity(Intent(activity, MainActivity::class.java))
+                    startActivity(Intent(activity, ProfileActivity::class.java))
                     activity!!.finish()
 
                 }
