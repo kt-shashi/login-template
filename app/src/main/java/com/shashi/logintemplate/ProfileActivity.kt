@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -28,12 +29,12 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var firebaseFirestore: FirebaseFirestore
     private val COLLECTION_NAME = "users"
 
-    lateinit var buttonSave: Button
-    lateinit var textInputLayoutName: TextInputLayout
+    private lateinit var buttonSave: Button
+    private lateinit var textInputLayoutName: TextInputLayout
 
-    lateinit var circleImageView: CircleImageView
-    lateinit var filepath: Uri
-    lateinit var bitmap: Bitmap
+    private lateinit var circleImageView: CircleImageView
+    private var profileImageUri: Uri = Uri.EMPTY
+    private lateinit var bitmap: Bitmap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,13 +62,17 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
 
-        saveUsernameInFirestore(userName)
+        saveDataInFirestore(userName, getUserID())
 
     }
 
-    private fun saveUsernameInFirestore(userName: String) {
-        val userId: String = FirebaseAuth.getInstance().currentUser!!.uid
+    private fun getUserID(): String {
+        return FirebaseAuth.getInstance().currentUser!!.uid
+    }
 
+    private fun saveDataInFirestore(userName: String, userId: String) {
+
+        //Update name in Firestore
         val documentReference = firebaseFirestore
             .collection(COLLECTION_NAME)
             .document(userId)
@@ -77,19 +82,35 @@ class ProfileActivity : AppCompatActivity() {
 
         documentReference.set(userData)
             .addOnSuccessListener {
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
+
             }
+            .addOnFailureListener {
+                Toast.makeText(this, "Could not update name", Toast.LENGTH_SHORT).show()
+                isProfileUpdateSuccessfull(false)
+            }
+
+        //Upload image in FirebaseStorage
+        val firebaseStorage = FirebaseStorage.getInstance()
+        val uploader = firebaseStorage.reference.child("profile_pictures").child("$userId.jpg")
+
+        uploader.putFile(profileImageUri)
+            .addOnSuccessListener {
+                isProfileUpdateSuccessfull(true)
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Could not upload image", Toast.LENGTH_SHORT).show()
+                isProfileUpdateSuccessfull(false)
+            }
+
     }
 
-    private fun isNameValid(userName: String): Boolean {
-        if (userName.isEmpty()) {
-            textInputLayoutName.error = "Cannot be empty"
-            return false
-        } else {
-            textInputLayoutName.error = null
+    private fun isProfileUpdateSuccessfull(isSuccessful: Boolean) {
+
+        if (isSuccessful) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
         }
-        return true
+
     }
 
     private fun circleImageViewClicked() {
@@ -137,17 +158,38 @@ class ProfileActivity : AppCompatActivity() {
 
             if (resultCode == RESULT_OK) {
 
-                filepath = result.uri
-                val inputStream: InputStream = contentResolver.openInputStream(filepath)!!
+                profileImageUri = result.uri
+                val inputStream: InputStream =
+                    contentResolver.openInputStream(profileImageUri)!!
                 bitmap = BitmapFactory.decodeStream(inputStream)
                 circleImageView.setImageBitmap(bitmap)
 
             } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
-                Toast.makeText(this, "Something went wrong while loading image", Toast.LENGTH_SHORT)
+                Toast.makeText(
+                    this,
+                    "Something went wrong while loading image",
+                    Toast.LENGTH_SHORT
+                )
                     .show()
             }
         }
 
+    }
+
+    private fun isNameValid(userName: String): Boolean {
+        if (userName.isEmpty()) {
+            textInputLayoutName.error = "Cannot be empty"
+            return false
+        } else {
+            textInputLayoutName.error = null
+        }
+
+        if (profileImageUri == Uri.EMPTY) {
+            Toast.makeText(this, "Image not selected", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return true
     }
 
 }
