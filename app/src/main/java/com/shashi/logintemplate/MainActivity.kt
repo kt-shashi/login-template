@@ -1,17 +1,29 @@
 package com.shashi.logintemplate
 
+import android.Manifest
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
-import android.util.DisplayMetrics
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.MultiplePermissionsReport
+import com.karumi.dexter.PermissionToken
+import com.karumi.dexter.listener.PermissionRequest
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import com.theartofdev.edmodo.cropper.CropImage
+import com.theartofdev.edmodo.cropper.CropImageView
 import de.hdodenhof.circleimageview.CircleImageView
+import java.io.InputStream
 
 
 class MainActivity : AppCompatActivity() {
@@ -22,6 +34,9 @@ class MainActivity : AppCompatActivity() {
     lateinit var circleImageView: CircleImageView
 
     lateinit var textInputLayoutName: TextInputLayout
+    lateinit var previousImageUri: Uri
+    lateinit var updatedImageUri: Uri
+    private lateinit var bitmap: Bitmap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,8 +54,12 @@ class MainActivity : AppCompatActivity() {
 
         circleImageView = findViewById(R.id.display_image_main)
 
-        val button = findViewById<Button>(R.id.button_logout_main)
-        button.setOnClickListener { logout() }
+        val buttonUpdate = findViewById<Button>(R.id.button_update_main)
+        val buttonLogout = findViewById<Button>(R.id.button_logout_main)
+
+        buttonUpdate.setOnClickListener { updateData() }
+        buttonLogout.setOnClickListener { logout() }
+        circleImageView.setOnClickListener { circleImageViewClicked() }
 
     }
 
@@ -54,12 +73,16 @@ class MainActivity : AppCompatActivity() {
                 if (documentSnapshot.exists()) {
 
                     var userName = documentSnapshot.getString("name")
+                    var imageUrl = documentSnapshot.getString("image")
 
                     if (userName!!.isEmpty()) {
                         userName = ""
                     }
+                    if (imageUrl!!.isEmpty()) {
+                        imageUrl = ""
+                    }
 
-                    showData(userName)
+                    showData(userName, imageUrl)
 
                 } else {
                     startActivity(Intent(this, ProfileActivity::class.java))
@@ -79,32 +102,189 @@ class MainActivity : AppCompatActivity() {
         return FirebaseAuth.getInstance().currentUser!!.uid
     }
 
-    private fun showData(userName: String) {
+    private fun showData(userName: String, imageUrl: String) {
+        previousImageUri = Uri.parse(imageUrl)
+        updatedImageUri = Uri.parse(imageUrl)
+
         textInputLayoutName.editText!!.setText(userName)
-        showProfileImage()
+
+        val placeolderRequest = RequestOptions()
+        placeolderRequest.placeholder(R.drawable.icon_profile)
+
+        Glide.with(this)
+            .setDefaultRequestOptions(placeolderRequest)
+            .load(imageUrl)
+            .into(circleImageView)
     }
 
-    private fun showProfileImage() {
-        val userId = getUserID()
+    private fun updateData() {
 
-        val storageReference =
-            FirebaseStorage.getInstance().getReference("profile_pictures/$userId.jpg")
+        val userName = textInputLayoutName.editText?.text.toString()
 
-        val ONE_MEGABYTE = 1024 * 1024.toLong()
-        storageReference.getBytes(ONE_MEGABYTE)
-            .addOnSuccessListener {
+        if (!isDataValid(userName)) {
+            return
+        }
 
-                val bm = BitmapFactory.decodeByteArray(it, 0, it.size)
-                val dm = DisplayMetrics()
-                windowManager.defaultDisplay.getMetrics(dm)
-                circleImageView.minimumHeight = dm.heightPixels
-                circleImageView.minimumWidth = dm.widthPixels
-                circleImageView.setImageBitmap(bm)
+        if (previousImageUri == updatedImageUri) {
+            saveNameInFirestore(getUserID(), userName)
+        } else {
+            uploadImageInStorage(userName, getUserID())
+        }
+    }
 
-            }.addOnFailureListener {
-                // Handle any errors
-                Toast.makeText(this, "Could not load Image", Toast.LENGTH_SHORT).show()
+    private fun uploadImageInStorage(userName: String, userId: String) {
+
+        //Upload image in FirebaseStorage
+        val firebaseStorage = FirebaseStorage.getInstance()
+        val uploader = firebaseStorage.reference.child("profile_pictures").child("$userId.jpg")
+
+        uploader.putFile(updatedImageUri)
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+
+                    uploader
+                        .downloadUrl
+                        .addOnSuccessListener {
+                            saveDataInFirestore(userId, userName, it.toString())
+                        }
+
+                } else {
+                    Toast.makeText(this, "Could not upload image", Toast.LENGTH_SHORT).show()
+                    isProfileUpdateSuccessfull(false)
+                }
             }
+
+    }
+
+    private fun saveNameInFirestore(userId: String, userName: String) {
+
+        //Update name in Firestore
+        val documentReference = firebaseFirestore
+            .collection(COLLECTION_NAME)
+            .document(userId)
+
+        val userData: MutableMap<String, Any> = HashMap()
+        userData["name"] = userName
+
+        documentReference.update(userData)
+            .addOnSuccessListener {
+                isProfileUpdateSuccessfull(true)
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Could not update name", Toast.LENGTH_SHORT).show()
+                isProfileUpdateSuccessfull(false)
+            }
+
+    }
+
+    private fun saveDataInFirestore(userId: String, userName: String, uploadedImageUri: String) {
+
+        //Update name in Firestore
+        val documentReference = firebaseFirestore
+            .collection(COLLECTION_NAME)
+            .document(userId)
+
+        val userData: MutableMap<String, Any> = HashMap()
+        userData["name"] = userName
+        userData["image"] = uploadedImageUri
+
+        documentReference.set(userData)
+            .addOnSuccessListener {
+                isProfileUpdateSuccessfull(true)
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Could not update name", Toast.LENGTH_SHORT).show()
+                isProfileUpdateSuccessfull(false)
+            }
+
+    }
+
+    private fun isProfileUpdateSuccessfull(isSuccessful: Boolean) {
+
+        if (isSuccessful) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+        }
+
+    }
+
+    private fun isDataValid(userName: String): Boolean {
+        if (userName.isEmpty()) {
+            textInputLayoutName.error = "Cannot be empty"
+            return false
+        } else {
+            textInputLayoutName.error = null
+        }
+
+        if (previousImageUri == Uri.EMPTY) {
+            Toast.makeText(this, "Image not selected", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        return true
+    }
+
+    private fun circleImageViewClicked() {
+        permissionCheck()
+    }
+
+    private fun permissionCheck() {
+
+        Dexter.withContext(this)
+            .withPermissions(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ).withListener(object : MultiplePermissionsListener {
+                override fun onPermissionsChecked(report: MultiplePermissionsReport) {
+                    if (report.areAllPermissionsGranted()) {
+                        createIntent()
+                    }
+                }
+
+                override fun onPermissionRationaleShouldBeShown(
+                    permissions: List<PermissionRequest>,
+                    token: PermissionToken
+                ) {
+                    token.continuePermissionRequest()
+                }
+            }).check()
+
+    }
+
+    private fun createIntent() {
+
+        CropImage.activity()
+            .setGuidelines(CropImageView.Guidelines.ON)
+            .setAspectRatio(1, 1)
+            .start(this)
+
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+
+            val result = CropImage.getActivityResult(data)
+
+            if (resultCode == RESULT_OK) {
+
+                updatedImageUri = result.uri
+                val inputStream: InputStream =
+                    contentResolver.openInputStream(updatedImageUri)!!
+                bitmap = BitmapFactory.decodeStream(inputStream)
+                circleImageView.setImageBitmap(bitmap)
+
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                Toast.makeText(
+                    this,
+                    "Something went wrong while loading image",
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+            }
+        }
+
     }
 
     private fun logout() {

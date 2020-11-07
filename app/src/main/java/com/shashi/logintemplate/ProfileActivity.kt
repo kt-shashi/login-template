@@ -62,7 +62,7 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
 
-        saveDataInFirestore(userName, getUserID())
+        uploadImageInStorage(userName, getUserID())
 
     }
 
@@ -70,7 +70,31 @@ class ProfileActivity : AppCompatActivity() {
         return FirebaseAuth.getInstance().currentUser!!.uid
     }
 
-    private fun saveDataInFirestore(userName: String, userId: String) {
+    private fun uploadImageInStorage(userName: String, userId: String) {
+
+        //Upload image in FirebaseStorage
+        val firebaseStorage = FirebaseStorage.getInstance()
+        val uploader = firebaseStorage.reference.child("profile_pictures").child("$userId.jpg")
+
+        uploader.putFile(profileImageUri)
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+
+                    uploader
+                        .downloadUrl
+                        .addOnSuccessListener {
+                            saveDataInFirestore(userId, userName, it.toString())
+                        }
+
+                } else {
+                    Toast.makeText(this, "Could not upload image", Toast.LENGTH_SHORT).show()
+                    isProfileUpdateSuccessfull(false)
+                }
+            }
+
+    }
+
+    private fun saveDataInFirestore(userId: String, userName: String, uploadedImageUri: String) {
 
         //Update name in Firestore
         val documentReference = firebaseFirestore
@@ -79,26 +103,14 @@ class ProfileActivity : AppCompatActivity() {
 
         val userData: MutableMap<String, Any> = HashMap()
         userData["name"] = userName
+        userData["image"] = uploadedImageUri
 
         documentReference.set(userData)
-            .addOnSuccessListener {
-
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Could not update name", Toast.LENGTH_SHORT).show()
-                isProfileUpdateSuccessfull(false)
-            }
-
-        //Upload image in FirebaseStorage
-        val firebaseStorage = FirebaseStorage.getInstance()
-        val uploader = firebaseStorage.reference.child("profile_pictures").child("$userId.jpg")
-
-        uploader.putFile(profileImageUri)
             .addOnSuccessListener {
                 isProfileUpdateSuccessfull(true)
             }
             .addOnFailureListener {
-                Toast.makeText(this, "Could not upload image", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Could not update name", Toast.LENGTH_SHORT).show()
                 isProfileUpdateSuccessfull(false)
             }
 
