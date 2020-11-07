@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         firebaseFirestore = FirebaseFirestore.getInstance()
 
         initViews()
-        getUserData()
+        checkIfDataAvaiable()
     }
 
     private fun initViews() {
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun getUserData() {
+    private fun checkIfDataAvaiable() {
         val user: FirebaseUser? = FirebaseAuth.getInstance().currentUser
 
         if (user != null) {
@@ -53,25 +53,25 @@ class MainActivity : AppCompatActivity() {
                             userName = ""
                         }
 
-                        textInputLayoutName.editText!!.setText(userName)
+                        showData(userName)
 
                     } else {
-                        Toast.makeText(
-                            this,
-                            "Something went wrong while loading Display name",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        startActivity(Intent(this, ProfileActivity::class.java))
+                        finish()
                     }
                 }
                 .addOnFailureListener {
                     Toast.makeText(
                         this,
-                        "Could not load Display name at this moment",
+                        "Please check your internet connection",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
         }
+    }
 
+    private fun showData(userName: String) {
+        textInputLayoutName.editText!!.setText(userName)
     }
 
     private fun logout() {

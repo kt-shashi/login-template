@@ -11,4 +11,6 @@
     <string name="display_name">Display name</string>
     <string name="logout">Logout</string>
     <string name="save">Save</string>
+    <string name="user_profile">User profile</string>
+    <string name="main_activity">Main Activity</string>
 </resources>

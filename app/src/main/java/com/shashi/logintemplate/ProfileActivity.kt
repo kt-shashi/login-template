@@ -1,12 +1,27 @@
 package com.shashi.logintemplate
 
+import android.Manifest
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.karumi.dexter.Dexter
+import com.karumi.dexter.MultiplePermissionsReport
+import com.karumi.dexter.PermissionToken
+import com.karumi.dexter.listener.PermissionRequest
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import com.theartofdev.edmodo.cropper.CropImage
+import com.theartofdev.edmodo.cropper.CropImageView
+import de.hdodenhof.circleimageview.CircleImageView
+import java.io.InputStream
+
 
 class ProfileActivity : AppCompatActivity() {
 
@@ -15,6 +30,10 @@ class ProfileActivity : AppCompatActivity() {
 
     lateinit var buttonSave: Button
     lateinit var textInputLayoutName: TextInputLayout
+
+    lateinit var circleImageView: CircleImageView
+    lateinit var filepath: Uri
+    lateinit var bitmap: Bitmap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +48,9 @@ class ProfileActivity : AppCompatActivity() {
         buttonSave = findViewById(R.id.button_save_profile)
         textInputLayoutName = findViewById(R.id.text_input_layout_display_name_profile)
 
+        circleImageView = findViewById(R.id.display_image_profile)
+
+        circleImageView.setOnClickListener { circleImageViewClicked() }
         buttonSave.setOnClickListener { saveClicked() }
     }
 
@@ -68,6 +90,64 @@ class ProfileActivity : AppCompatActivity() {
             textInputLayoutName.error = null
         }
         return true
+    }
+
+    private fun circleImageViewClicked() {
+        permissionCheck()
+    }
+
+    private fun permissionCheck() {
+
+        Dexter.withContext(this)
+            .withPermissions(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ).withListener(object : MultiplePermissionsListener {
+                override fun onPermissionsChecked(report: MultiplePermissionsReport) {
+                    if (report.areAllPermissionsGranted()) {
+                        createIntent()
+                    }
+                }
+
+                override fun onPermissionRationaleShouldBeShown(
+                    permissions: List<PermissionRequest>,
+                    token: PermissionToken
+                ) {
+                    token.continuePermissionRequest()
+                }
+            }).check()
+
+    }
+
+    private fun createIntent() {
+
+        CropImage.activity()
+            .setGuidelines(CropImageView.Guidelines.ON)
+            .setAspectRatio(1, 1)
+            .start(this)
+
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+
+            val result = CropImage.getActivityResult(data)
+
+            if (resultCode == RESULT_OK) {
+
+                filepath = result.uri
+                val inputStream: InputStream = contentResolver.openInputStream(filepath)!!
+                bitmap = BitmapFactory.decodeStream(inputStream)
+                circleImageView.setImageBitmap(bitmap)
+
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                Toast.makeText(this, "Something went wrong while loading image", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+
     }
 
 }
