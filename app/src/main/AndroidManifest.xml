@@ -14,6 +14,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LoginTemplate">
+        <activity android:name=".GoogleSignInActivity"></activity>
         <activity android:name=".MainActivity" />
         <activity android:name=".ProfileActivity" />
         <activity android:name=".LoginActivity">

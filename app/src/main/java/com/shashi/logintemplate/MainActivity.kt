@@ -92,8 +92,17 @@ class MainActivity : AppCompatActivity() {
                     showData(userName, imageUrl)
 
                 } else {
-                    startActivity(Intent(this, ProfileActivity::class.java))
-                    finish()
+
+                    for (user in FirebaseAuth.getInstance().currentUser!!.providerData) {
+                        if (user.providerId == "password") {
+                            startActivity(Intent(this, ProfileActivity::class.java))
+                            finish()
+                        } else {
+                            startActivity(Intent(this, GoogleSignInActivity::class.java))
+                            finish()
+                        }
+                    }
+
                 }
             }
             .addOnFailureListener {

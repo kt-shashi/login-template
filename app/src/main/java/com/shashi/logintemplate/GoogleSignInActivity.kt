@@ -5,10 +5,14 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,8 +27,7 @@ import com.theartofdev.edmodo.cropper.CropImageView
 import de.hdodenhof.circleimageview.CircleImageView
 import java.io.InputStream
 
-
-class ProfileActivity : AppCompatActivity() {
+class GoogleSignInActivity : AppCompatActivity() {
 
     private lateinit var firebaseFirestore: FirebaseFirestore
     private lateinit var userId: String
@@ -37,22 +40,28 @@ class ProfileActivity : AppCompatActivity() {
     private var profileImageUri: Uri = Uri.EMPTY
     private lateinit var bitmap: Bitmap
 
+    private lateinit var gAccount: GoogleSignInAccount
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_profile)
+        setContentView(R.layout.activity_google_sign_in)
 
         initViews()
 
         firebaseFirestore = FirebaseFirestore.getInstance()
         userId = FirebaseAuth.getInstance().currentUser?.uid!!
 
+        gAccount = GoogleSignIn.getLastSignedInAccount(this)!!
+
+        textInputLayoutName.editText?.setText(gAccount.displayName)
+
     }
 
     private fun initViews() {
-        buttonSave = findViewById(R.id.button_save_profile)
-        textInputLayoutName = findViewById(R.id.text_input_layout_display_name_profile)
+        buttonSave = findViewById(R.id.button_save_google)
+        textInputLayoutName = findViewById(R.id.text_input_layout_display_name_google)
 
-        circleImageView = findViewById(R.id.display_image_profile)
+        circleImageView = findViewById(R.id.display_image_google)
 
         circleImageView.setOnClickListener { circleImageViewClicked() }
         buttonSave.setOnClickListener { saveClicked() }
