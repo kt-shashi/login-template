@@ -5,12 +5,10 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.Toast
-import com.bumptech.glide.Glide
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.material.textfield.TextInputLayout
@@ -51,6 +49,8 @@ class GoogleSignInActivity : AppCompatActivity() {
         firebaseFirestore = FirebaseFirestore.getInstance()
         userId = FirebaseAuth.getInstance().currentUser?.uid!!
 
+        checkIfDataAvaiable()
+
         gAccount = GoogleSignIn.getLastSignedInAccount(this)!!
 
         textInputLayoutName.editText?.setText(gAccount.displayName)
@@ -65,6 +65,28 @@ class GoogleSignInActivity : AppCompatActivity() {
 
         circleImageView.setOnClickListener { circleImageViewClicked() }
         buttonSave.setOnClickListener { saveClicked() }
+    }
+
+    private fun checkIfDataAvaiable() {
+
+        firebaseFirestore.collection(COLLECTION_NAME)
+            .document(userId)
+            .get()
+            .addOnSuccessListener { documentSnapshot -> //Check if the document exists
+                if (documentSnapshot.exists()) {
+
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(
+                    this,
+                    "Please check your internet connection",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
     }
 
     private fun saveClicked() {

@@ -11,6 +11,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -304,10 +307,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logout() {
+
         FirebaseAuth.getInstance().signOut()
+
+        // Google sign out
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+
+        val mGoogleSignInClient: GoogleSignInClient = GoogleSignIn.getClient(this, gso)
+
+        mGoogleSignInClient.signOut().addOnCompleteListener(this) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+        }
 
         startActivity(Intent(this, LoginActivity::class.java))
         finish()
+
     }
 
 }
