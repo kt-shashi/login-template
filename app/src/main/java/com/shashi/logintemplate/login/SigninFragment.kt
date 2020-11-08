@@ -14,6 +14,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.firestore.FirebaseFirestore
 import com.shashi.logintemplate.MainActivity
 import com.shashi.logintemplate.ProfileActivity
 import com.shashi.logintemplate.R
@@ -67,8 +68,12 @@ class SigninFragment : Fragment() {
         firebaseAuth.signInWithEmailAndPassword(userEmail, userPass)
             .addOnSuccessListener {
 
-                startActivity(Intent(activity, MainActivity::class.java))
-                activity!!.finish()
+                if (firebaseAuth.currentUser!!.isEmailVerified) {
+                    checkIfDataAvaiable()
+                } else {
+                    Toast.makeText(activity, "Verify your email to sign-in", Toast.LENGTH_SHORT)
+                        .show()
+                }
 
             }
             .addOnFailureListener { e ->
@@ -82,6 +87,35 @@ class SigninFragment : Fragment() {
                 } else {
                     textInputLayoutEmail.error = null
                 }
+            }
+    }
+
+    private fun checkIfDataAvaiable() {
+        val userId = firebaseAuth.currentUser!!.uid
+        val firebaseFirestore = FirebaseFirestore.getInstance()
+
+        firebaseFirestore.collection("users")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { documentSnapshot -> //Check if the document exists
+                if (documentSnapshot.exists()) {
+
+                    startActivity(Intent(activity, MainActivity::class.java))
+                    activity?.finish()
+
+                } else {
+
+                    startActivity(Intent(activity, ProfileActivity::class.java))
+                    activity?.finish()
+
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(
+                    activity,
+                    "Please check your internet connection",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
     }
 

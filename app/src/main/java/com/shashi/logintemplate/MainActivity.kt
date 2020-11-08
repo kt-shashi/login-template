@@ -45,7 +45,14 @@ class MainActivity : AppCompatActivity() {
         firebaseFirestore = FirebaseFirestore.getInstance()
 
         initViews()
+        checkIfEmailVerified()
         checkIfDataAvaiable()
+    }
+
+    private fun checkIfEmailVerified() {
+        if (!FirebaseAuth.getInstance().currentUser!!.isEmailVerified) {
+            logout()
+        }
     }
 
     private fun initViews() {

@@ -1,6 +1,5 @@
 package com.shashi.logintemplate.login
 
-import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Patterns
@@ -8,11 +7,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import com.shashi.logintemplate.ProfileActivity
 import com.shashi.logintemplate.R
 
 class SignupFragment : Fragment() {
@@ -69,8 +68,24 @@ class SignupFragment : Fragment() {
             ) { task ->
                 if (task.isSuccessful) {
 
-                    startActivity(Intent(activity, ProfileActivity::class.java))
-                    activity!!.finish()
+                    val user = firebaseAuth.currentUser
+
+                    user!!.sendEmailVerification()
+                        .addOnCompleteListener {
+                            if (it.isSuccessful) {
+                                Toast.makeText(
+                                    activity,
+                                    "An email verification link is sent to you",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    activity,
+                                    "Could not send email verification",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
 
                 }
             }
@@ -81,6 +96,8 @@ class SignupFragment : Fragment() {
                     textInputLayoutEmail.error = null
                 }
             }
+
+        firebaseAuth.signOut()
     }
 
     private fun isValid(userEmail: String, userPass: String, userPasswordConfirm: String): Boolean {
